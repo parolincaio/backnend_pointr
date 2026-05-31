@@ -168,9 +168,9 @@ routes.post('/colaboradores', async (req, res) => {
   try {
     const [result] = await db.query(
       `INSERT INTO colaborador 
-       (id_empresa, nome_completo, cpf, email, telefone, senha, cargo, status) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
-      [id_empresa, nome_completo, cpf, email, telefone, senha, cargo]
+       (id_empresa, nome_completo, email, telefone, senha, cargo, status) 
+       VALUES (?, ?, ?, ?, ?, ?, 1)`,
+      [id_empresa, nome_completo, email, telefone, senha, cargo]
     );
 
     const [rows] = await db.query('SELECT * FROM colaborador WHERE id_colaborador = ?', [result.insertId]);
