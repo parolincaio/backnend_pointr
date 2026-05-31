@@ -158,4 +158,49 @@ routes.put('/empresas/:id_empresa', async (req, res) => {
   }
 });
 
+// POST - CADASTRAR COLABORADOR
+routes.post('/colaboradores', async (req, res) => {
+  const { id_loja, nome_completo, cpf, email, telefone, senha, cargo } = req.body;
+
+  if (!id_loja || !nome_completo || !senha)
+    return res.status(400).json({ message: 'campos obrigatórios ausentes' });
+
+  try {
+    const [result] = await db.query(
+      `INSERT INTO colaborador 
+       (id_loja, nome_completo, cpf, email, telefone, senha, cargo, status) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
+      [id_loja, nome_completo, cpf, email, telefone, senha, cargo]
+    );
+
+    const [rows] = await db.query('SELECT * FROM colaborador WHERE id_colaborador = ?', [result.insertId]);
+    return res.status(201).json(rows[0]);
+  } catch (e) {
+    console.error(e);
+    if (e.code === 'ER_DUP_ENTRY')
+      return res.status(409).json({ message: 'cpf ou email já cadastrado' });
+    return res.status(500).json({ message: 'erro interno' });
+  }
+});
+
+// GET - LISTAR COLABORADORES DE UMA EMPRESA (através das lojas)
+routes.get('/empresas/:id_empresa/colaboradores', async (req, res) => {
+  const id_empresa = parseInt(req.params.id_empresa);
+
+  try {
+    const [rows] = await db.query(`
+      SELECT c.* 
+      FROM colaborador c
+      JOIN loja l ON c.id_loja = l.id_loja
+      WHERE l.id_empresa = ?
+      ORDER BY c.nome_completo ASC
+    `, [id_empresa]);
+
+    return res.status(200).json(rows);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ message: 'erro interno' });
+  }
+});
+
 module.exports = routes;
