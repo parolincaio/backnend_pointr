@@ -199,4 +199,57 @@ routes.get('/empresas/:id_empresa/colaboradores', async (req, res) => {
   }
 });
 
+// PUT - EDITAR COLABORADOR
+routes.put('/colaboradores/:id', async (req, res) => {
+  const id = parseInt(req.params.id);
+  const { nome_completo, email, telefone, cargo } = req.body;
+
+  try {
+    await db.query(
+      `UPDATE colaborador SET
+        nome_completo = COALESCE(?, nome_completo),
+        email = COALESCE(?, email),
+        telefone = COALESCE(?, telefone),
+        cargo = COALESCE(?, cargo)
+      WHERE id_colaborador = ?`,
+      [nome_completo, email, telefone, cargo, id]
+    );
+
+    const [rows] = await db.query(
+      'SELECT * FROM colaborador WHERE id_colaborador = ?',
+      [id]
+    );
+
+    if (rows.length === 0)
+      return res.status(404).json({ message: 'colaborador não encontrado' });
+
+    return res.status(200).json(rows[0]);
+  } catch (e) {
+    console.error(e);
+    if (e.code === 'ER_DUP_ENTRY')
+      return res.status(409).json({ message: 'email já cadastrado' });
+    return res.status(500).json({ message: 'erro interno' });
+  }
+});
+
+// DELETE - DELETAR COLABORADOR
+routes.delete('/colaboradores/:id', async (req, res) => {
+  const id = parseInt(req.params.id);
+
+  try {
+    const [result] = await db.query(
+      'DELETE FROM colaborador WHERE id_colaborador = ?',
+      [id]
+    );
+
+    if (result.affectedRows === 0)
+      return res.status(404).json({ message: 'colaborador não encontrado' });
+
+    return res.status(200).json({ message: 'colaborador deletado' });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ message: 'erro interno' });
+  }
+});
+
 module.exports = routes;
