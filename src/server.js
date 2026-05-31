@@ -8,9 +8,12 @@ const app = express();
 
 app.use(express.json());
 
-// ✅ CORS Atualizado (mais permissivo para desenvolvimento)
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000'], // Vite + React comum
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://project-pointr.netlify.app'
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
