@@ -122,4 +122,40 @@ routes.post('/empresas', async (req, res) => {
   }
 });
 
+// PUT - EDITAR EMPRESA
+routes.put('/empresas/:id_empresa', async (req, res) => {
+  const id_empresa = parseInt(req.params.id_empresa);
+  const { nome_empresa, cnpj, telefone, email, nivel_assinatura } = req.body;
+
+  try {
+    await db.query(
+      `UPDATE empresa SET 
+        nome_empresa = COALESCE(?, nome_empresa),
+        cnpj = COALESCE(?, cnpj),
+        telefone = COALESCE(?, telefone),
+        email = COALESCE(?, email),
+        nivel_assinatura = COALESCE(?, nivel_assinatura)
+      WHERE id_empresa = ?`,
+      [nome_empresa, cnpj, telefone, email, nivel_assinatura, id_empresa]
+    );
+
+    const [rows] = await db.query(
+      'SELECT * FROM empresa WHERE id_empresa = ?',
+      [id_empresa]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'empresa não encontrada' });
+    }
+
+    return res.status(200).json(rows[0]);
+  } catch (e) {
+    console.error(e);
+    if (e.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({ message: 'cnpj já cadastrado' });
+    }
+    return res.status(500).json({ message: 'erro interno' });
+  }
+});
+
 module.exports = routes;
