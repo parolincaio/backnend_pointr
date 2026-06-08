@@ -1,5 +1,6 @@
 const express = require('express');
 const mysql = require('mysql2/promise');
+const bcrypt = require('bcryptjs');
 
 const routes = express.Router();
 
@@ -17,15 +18,19 @@ routes.post('/login', async (req, res) => {
 
   try {
     const [rows] = await db.query(
-      'SELECT * FROM gestor WHERE email = ? AND senha = ?',
-      [email, senha]
+      'SELECT * FROM gestor WHERE email = ?',
+      [email]
     );
 
-    if (rows.length > 0) {
-      const { senha: _, ...safeUser } = rows[0];
-      return res.status(200).json(safeUser);
-    }
-    return res.status(401).json({ message: 'dados invalidos' });
+    if (rows.length === 0)
+      return res.status(401).json({ message: 'dados invalidos' });
+
+    const senhaValida = await bcrypt.compare(senha, rows[0].senha);
+    if (!senhaValida)
+      return res.status(401).json({ message: 'dados invalidos' });
+
+    const { senha: _, ...safeUser } = rows[0];
+    return res.status(200).json(safeUser);
   } catch (e) {
     console.error(e);
     return res.status(500).json({ message: 'erro interno' });
@@ -40,9 +45,11 @@ routes.post('/register', async (req, res) => {
     return res.status(400).json({ message: 'preencha os campos obrigatórios' });
 
   try {
+    const senhaHash = await bcrypt.hash(senha, 10);
+
     const [result] = await db.query(
       'INSERT INTO gestor (nome_completo, cpf, email, senha) VALUES (?, ?, ?, ?)',
-      [nome_completo, cpf, email, senha]
+      [nome_completo, cpf, email, senhaHash]
     );
 
     const [rows] = await db.query('SELECT * FROM gestor WHERE id_gestor = ?', [result.insertId]);
@@ -62,13 +69,15 @@ routes.put('/gestor/:id', async (req, res) => {
   const { nome_completo, email, senha } = req.body;
 
   try {
+    const senhaHash = senha ? await bcrypt.hash(senha, 10) : null;
+
     await db.query(
       `UPDATE gestor SET 
         nome_completo = COALESCE(?, nome_completo),
         email = COALESCE(?, email),
         senha = COALESCE(?, senha)
       WHERE id_gestor = ?`,
-      [nome_completo, email, senha, id]
+      [nome_completo || null, email || null, senhaHash, id]
     );
 
     const [rows] = await db.query('SELECT * FROM gestor WHERE id_gestor = ?', [id]);
